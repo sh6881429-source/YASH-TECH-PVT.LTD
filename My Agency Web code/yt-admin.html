@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Admin Login — YashTech Labs</title>
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Admin CSS -->
+  <link rel="stylesheet" href="css/admin.css">
+
+  <!-- Favicon -->
+  <link id="favicon" rel="icon" type="image/jpeg" href="images/logo.jpg" />
+
+  <style>
+    /* Login page specific overrides */
+    .login-attempts-bar {
+      display: flex;
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .attempt-dot {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .attempt-dot.used { background: var(--danger); }
+    .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+    .version-tag {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="admin-login-body">
+
+  <!-- Animated Background -->
+  <div class="login-bg">
+    <div class="login-bg-grid"></div>
+    <div class="login-bg-glow login-bg-glow-1"></div>
+    <div class="login-bg-glow login-bg-glow-2"></div>
+  </div>
+
+  <!-- Login Card -->
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="login-logo-wrap" style="display:flex; flex-direction:column; align-items:center;">
+      <div class="login-logo-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative;">
+        <img id="admin-logo-img" src="images/logo.jpg" alt="YT" style="width:100%; height:100%; object-fit:cover;">
+        <span class="lock-badge">🔐</span>
+      </div>
+      <div class="login-brand">YashTech Labs</div>
+      <div class="login-subtitle">Admin Panel · Restricted Access</div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider" style="margin:0 0 28px;"></div>
+
+    <!-- Login Form -->
+    <form id="login-form" autocomplete="off" novalidate>
+
+      <div class="form-group">
+        <label class="form-label" for="login-password">
+          🔑 Admin Password
+        </label>
+        <div class="password-input-wrapper">
+          <input
+            type="password"
+            id="login-password"
+            class="form-control"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            spellcheck="false"
+            autofocus
+            required
+          >
+          <button type="button" id="toggle-password" class="password-toggle" aria-label="Toggle password visibility">
+            👁
+          </button>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div id="login-error" class="login-error-box" role="alert">
+        <span>⚠️</span>
+        <span class="error-text">Incorrect password. Please try again.</span>
+      </div>
+
+      <!-- Lockout Box -->
+      <div id="login-lockout" class="login-lockout-box" role="alert">
+        <span>🔒</span>
+        <span>Too many failed attempts. Try again in <strong id="lockout-timer">30:00</strong></span>
+      </div>
+
+      <!-- Attempts indicator dots (hidden until 1 failed attempt) -->
+      <div class="login-attempts-bar" id="attempts-bar" style="display:none;">
+        <div class="attempt-dot" id="dot-1"></div>
+        <div class="attempt-dot" id="dot-2"></div>
+        <div class="attempt-dot" id="dot-3"></div>
+        <div class="attempt-dot" id="dot-4"></div>
+        <div class="attempt-dot" id="dot-5"></div>
+      </div>
+      <div id="attempts-left" style="display:none;"></div>
+
+      <!-- Submit Button -->
+      <button type="submit" id="login-btn" class="btn btn-primary btn-block" style="margin-top:24px;">
+        <span class="btn-text">🚀 Login to Dashboard</span>
+        <span class="btn-spinner">
+          <div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>
+          Authenticating…
+        </span>
+      </button>
+
+    </form>
+
+    <!-- Security Note -->
+    <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:28px;line-height:1.6;">
+      🛡️ This panel is protected and monitored.<br>
+      Unauthorized access attempts are logged.
+    </p>
+
+  </div>
+
+  <!-- Version tag -->
+  <div class="version-tag">YashTech Labs Admin v1.0</div>
+
+  <!-- Supabase Database & Local Fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+
+  <!-- Admin Auth -->
+  <script src="js/admin-auth.js"></script>
+
+  <script>
+    // Enhance attempts bar display
+    (function() {
+      const attemptsKey = 'yt_admin_attempts';
+      const attemptsBar = document.getElementById('attempts-bar');
+      const dots        = document.querySelectorAll('.attempt-dot');
+
+      function updateAttemptsDots() {
+        const used = parseInt(localStorage.getItem(attemptsKey) || '0', 10);
+        if (used > 0 && attemptsBar) {
+          attemptsBar.style.display = 'flex';
+          dots.forEach((dot, i) => {
+            dot.classList.toggle('used', i < used);
+          });
+        }
+      }
+
+      updateAttemptsDots();
+
+      // Update dots after form submission attempt
+      const form = document.getElementById('login-form');
+      if (form) {
+        form.addEventListener('submit', () => {
+          setTimeout(updateAttemptsDots, 500);
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>
